@@ -1,4 +1,4 @@
-package br.com.agendar.identity.internal;
+package br.com.agendar.identity.api;
 
 /**
  * Perfis do MVP (decididos na issue #1).

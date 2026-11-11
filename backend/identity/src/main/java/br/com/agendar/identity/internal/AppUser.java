@@ -1,5 +1,6 @@
 package br.com.agendar.identity.internal;
 
+import br.com.agendar.identity.api.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

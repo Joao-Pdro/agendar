@@ -1,0 +1,6 @@
+# Perfil de desenvolvimento: segredo do JWT fixo, com o banco de docker compose.
+agendar:
+  security:
+    jwt:
+      # Só existe aqui. Precisa de pelo menos 32 caracteres (HS256).
+      secret: dev-only-secret-com-mais-de-32-caracteres

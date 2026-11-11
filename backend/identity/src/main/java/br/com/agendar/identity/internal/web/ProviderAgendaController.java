@@ -1,6 +1,6 @@
 package br.com.agendar.identity.internal.web;
 
-import br.com.agendar.identity.internal.security.AuthenticatedUser;
+import br.com.agendar.identity.api.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

@@ -1,0 +1,9 @@
+# Perfil de produção.
+#
+# O segredo do JWT NÃO tem valor padrão aqui: se JWT_SECRET não estiver no ambiente, a
+# aplicação falha ao subir (ver JwtService). Um segredo de desenvolvimento publicado por
+# acidente emita tokens forjáveis para qualquer tenant.
+agendar:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
