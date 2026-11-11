@@ -12,11 +12,11 @@ spring:
     hibernate:
       ddl-auto: validate
 
+  # Cada módulo de domínio registra o seu Flyway (schema, histórico e locations próprios),
+  # porque todos numeram as migrations a partir de V1__. O Flyway global fica desligado
+  # para não varrer as migrations de todos os módulos com um histórico único.
   flyway:
-    enabled: true
-    # Um diretório por módulo. As migrations de cada módulo usam o schema do próprio módulo.
-    locations: classpath:db/migration
-    schemas: platform
+    enabled: false
 
 management:
   endpoint:

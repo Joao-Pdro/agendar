@@ -1,0 +1,6 @@
+spring:
+  flyway:
+    enabled: true
+    schemas: identity
+    table: flyway_schema_history_identity
+    locations: classpath:db/migration/identity
