@@ -48,9 +48,11 @@ class MigrationIT {
                 ORDER BY ordinal_position
                 """);
 
+        // V1 cria a base (#6); V2 acrescenta os vínculos do contrato e a chave de idempotência.
         assertThat(colunas).extracting(c -> c.get("column_name")).containsExactly(
                 "id", "tenant_id", "prestador_id", "starts_at", "ends_at",
-                "status", "version", "created_at", "updated_at", "during");
+                "status", "version", "created_at", "updated_at", "during",
+                "customer_id", "service_id", "idempotency_key", "idempotency_created_at");
 
         for (String esperada : List.of("starts_at", "ends_at", "created_at", "updated_at")) {
             Map<String, Object> col = colunas.stream()

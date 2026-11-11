@@ -43,6 +43,18 @@ public class Appointment {
     @Column(name = "ends_at", nullable = false)
     private Instant endsAt;
 
+    @Column(name = "customer_id")
+    private UUID customerId;
+
+    @Column(name = "service_id")
+    private UUID serviceId;
+
+    @Column(name = "idempotency_key", length = 128)
+    private String idempotencyKey;
+
+    @Column(name = "idempotency_created_at")
+    private Instant idempotencyCreatedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private AppointmentStatus status;
@@ -102,6 +114,38 @@ public class Appointment {
 
     public void setStatus(AppointmentStatus status) {
         this.status = Objects.requireNonNull(status, "status");
+    }
+
+    /**
+     * Vincula cliente e serviço ao agendamento.
+     */
+    public void vincularClienteEServico(UUID customerId, UUID serviceId, UUID tenantId) {
+        if (!this.tenantId.equals(tenantId)) {
+            throw new IllegalArgumentException("tenant não confere com o agendamento");
+        }
+        this.customerId = customerId;
+        this.serviceId = serviceId;
+    }
+
+    public void registrarIdempotencia(String chave, Instant quando) {
+        this.idempotencyKey = chave;
+        this.idempotencyCreatedAt = quando;
+    }
+
+    public UUID getCustomerId() {
+        return customerId;
+    }
+
+    public UUID getServiceId() {
+        return serviceId;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public Instant getIdempotencyCreatedAt() {
+        return idempotencyCreatedAt;
     }
 
     public long getVersion() {
