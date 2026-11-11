@@ -44,3 +44,25 @@
   flex: 1;
   padding: 1.5rem;
 }
+
+.shell__session {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.shell__role {
+  font-size: 0.75rem;
+  color: #5b6672;
+  text-transform: lowercase;
+}
+
+.shell__logout {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #cbd2da;
+  border-radius: 0.25rem;
+  background: #fff;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}

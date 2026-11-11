@@ -12,6 +12,13 @@
       </a>
     }
   </nav>
+
+  <div class="shell__session">
+    @if (role(); as currentRole) {
+      <span class="shell__role">{{ currentRole }}</span>
+    }
+    <button type="button" class="shell__logout" (click)="logout()">Sair</button>
+  </div>
 </header>
 
 <main class="shell__content">

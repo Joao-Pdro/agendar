@@ -1,0 +1,53 @@
+<section class="login">
+  <h1>Entrar</h1>
+
+  <form class="login__form" (submit)="submit(); $event.preventDefault()">
+    <label class="login__field">
+      <span>E-mail</span>
+      <input
+        type="email"
+        name="email"
+        autocomplete="username"
+        required
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+      />
+    </label>
+
+    <label class="login__field">
+      <span>Senha</span>
+      <input
+        type="password"
+        name="password"
+        autocomplete="current-password"
+        required
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+      />
+    </label>
+
+    <label class="login__field">
+      <span>Tenant (opcional)</span>
+      <input
+        type="text"
+        name="tenantId"
+        placeholder="Deixe vazio para entrar sem informar o tenant"
+        [ngModel]="tenantId()"
+        (ngModelChange)="tenantId.set($event)"
+      />
+    </label>
+
+    @if (error(); as failure) {
+      <p class="login__error" role="alert">
+        {{ failure.title }}
+        @if (failure.detail) {
+          — {{ failure.detail }}
+        }
+      </p>
+    }
+
+    <button type="submit" class="login__submit" [disabled]="submitting()">
+      {{ submitting() ? 'Entrando…' : 'Entrar' }}
+    </button>
+  </form>
+</section>
