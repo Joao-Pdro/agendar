@@ -1,0 +1,19 @@
+<header class="shell__header">
+  <span class="shell__brand">Agendar</span>
+  <nav class="shell__nav" aria-label="Navegação principal">
+    @for (item of navItems; track item.path) {
+      <a
+        class="shell__link"
+        [routerLink]="item.path"
+        routerLinkActive="shell__link--active"
+        [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+      >
+        {{ item.label }}
+      </a>
+    }
+  </nav>
+</header>
+
+<main class="shell__content">
+  <router-outlet />
+</main>
