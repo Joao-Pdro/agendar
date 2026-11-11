@@ -1,6 +1,7 @@
 package br.com.agendar.identity.internal.security;
 
-import br.com.agendar.identity.internal.Role;
+import br.com.agendar.identity.api.AuthenticatedUser;
+import br.com.agendar.identity.api.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;

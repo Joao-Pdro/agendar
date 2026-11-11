@@ -2,7 +2,7 @@ package br.com.agendar.platform;
 
 import br.com.agendar.identity.internal.AppUser;
 import br.com.agendar.identity.internal.AppUserRepository;
-import br.com.agendar.identity.internal.Role;
+import br.com.agendar.identity.api.Role;
 import br.com.agendar.identity.internal.Tenant;
 import br.com.agendar.identity.internal.TenantRepository;
 import org.junit.jupiter.api.BeforeEach;
