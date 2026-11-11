@@ -2,7 +2,7 @@ package br.com.agendar.core.internal.web;
 
 import br.com.agendar.core.internal.Service;
 import br.com.agendar.core.internal.ServiceRepository;
-import br.com.agendar.identity.internal.security.AuthenticatedUser;
+import br.com.agendar.identity.api.AuthenticatedUser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;

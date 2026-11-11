@@ -1,7 +1,7 @@
 package br.com.agendar.core.internal.web;
 
-import br.com.agendar.identity.internal.security.AuthenticatedUser;
-import br.com.agendar.identity.internal.Role;
+import br.com.agendar.identity.api.AuthenticatedUser;
+import br.com.agendar.identity.api.Role;
 import org.springframework.http.HttpStatus;
 
 /**
