@@ -34,6 +34,13 @@ public class JwtService {
     public JwtService(
             @Value("${agendar.security.jwt.secret}") String secret,
             @Value("${agendar.security.jwt.ttl:PT8H}") Duration ttl) {
+        // Sem valor padrão: o perfil de produção não define o segredo, então subir sem JWT_SECRET
+        // falha aqui, antes de a aplicação aceitar qualquer requisição.
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "agendar.security.jwt.secret não configurado. Defina JWT_SECRET no ambiente"
+                            + " (perfil de produção) ou use o perfil dev.");
+        }
         // HS256 exige pelo menos 256 bits de chave.
         if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException(
