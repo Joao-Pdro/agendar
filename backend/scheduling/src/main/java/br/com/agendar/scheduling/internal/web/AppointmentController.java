@@ -98,6 +98,43 @@ class AppointmentController {
         return ResponseEntity.ok(slots);
     }
 
+    /**
+     * Intervalo máximo aceito pela listagem de agendamentos.
+     *
+     * <p>A tela pede no máximo uma semana; o limite existe para não permitir uma varredura sem
+     * tamanho definido pelo cliente.
+     */
+    private static final Duration INTERVALO_MAXIMO = Duration.ofDays(31);
+
+    @GetMapping("/providers/{providerId}/appointments")
+    ResponseEntity<?> agendamentos(@AuthenticationPrincipal AuthenticatedUser user,
+                                   @PathVariable UUID providerId,
+                                   @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+                                   @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!user.canAccessProvider(providerId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        if (!from.isBefore(to)) {
+            return ResponseEntity.badRequest().body(problema(HttpStatus.BAD_REQUEST,
+                    "INVALID_RANGE", "from precisa ser anterior a to"));
+        }
+        if (Duration.between(from, to).compareTo(INTERVALO_MAXIMO) > 0) {
+            return ResponseEntity.unprocessableEntity().body(problema(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "RANGE_TOO_LONG", "O intervalo não pode passar de 31 dias"));
+        }
+
+        List<AppointmentResponse> lista = availability
+                .agendamentos(user.tenantId(), providerId, from, to).stream()
+                .map(a -> new AppointmentResponse(a.id(), a.tenantId(), a.providerId(), a.customerId(),
+                        a.serviceId(), a.startsAt(), a.endsAt(), a.status()))
+                .toList();
+
+        return ResponseEntity.ok(lista);
+    }
+
     @PostMapping("/appointments")
     ResponseEntity<?> criar(@AuthenticationPrincipal AuthenticatedUser user,
                             @RequestHeader("Idempotency-Key") String idempotencyKey,

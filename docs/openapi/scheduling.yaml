@@ -110,6 +110,67 @@ paths:
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
+  /providers/{providerId}/appointments:
+    get:
+      tags: [appointments]
+      operationId: listProviderAppointments
+      summary: Lista os agendamentos de um prestador em um intervalo
+      description: |
+        Devolve os agendamentos do prestador entre `from` e `to`, em ordem crescente de `startsAt`.
+
+        Usado pela grade da tela de agenda, que precisa dos agendamentos já marcados para exibir
+        ao lado dos horários livres.
+
+        - Agendamentos `CANCELADO` não aparecem.
+        - O intervalo é fechado nos dois extremos: um agendamento que começa exatamente em `from`
+          aparece, e um que termina exatamente em `to` também.
+        - Intervalo maior que **31 dias** responde `422` — a tela nunca precisa de mais que uma
+          semana, e o limite evita uma varredura sem tamanho.
+        - `from` precisa ser anterior a `to`.
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          description: Identificador do prestador.
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          required: true
+          description: Início do intervalo, ISO-8601 com offset explícito.
+          schema:
+            type: string
+            format: date-time
+            example: "2026-03-10T00:00:00-03:00"
+        - name: to
+          in: query
+          required: true
+          description: Fim do intervalo, ISO-8601 com offset explícito.
+          schema:
+            type: string
+            format: date-time
+            example: "2026-03-17T00:00:00-03:00"
+      responses:
+        "200":
+          description: Agendamentos do prestador no intervalo, em ordem crescente. Pode ser vazio.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Appointment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
   /appointments:
     post:
       tags: [appointments]
