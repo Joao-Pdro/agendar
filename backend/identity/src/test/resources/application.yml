@@ -4,3 +4,8 @@ spring:
     schemas: identity
     table: flyway_schema_history_identity
     locations: classpath:db/migration/identity
+
+agendar:
+  security:
+    jwt:
+      secret: teste-secret-com-mais-de-32-caracteres-ok

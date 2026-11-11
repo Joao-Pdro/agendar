@@ -12,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -33,7 +34,11 @@ class IdentityFacadeIT {
 
     @Configuration
     @EnableAutoConfiguration
-    @ComponentScan(basePackageClasses = Tenant.class)
+    // Só o pacote do módulo, sem a camada de segurança (que exige configuração de JWT).
+    @ComponentScan(basePackages = "br.com.agendar.identity.internal",
+            excludeFilters = @ComponentScan.Filter(
+                    type = FilterType.REGEX,
+                    pattern = "br\\.com\\.agendar\\.identity\\.internal\\.(security|web)\\..*"))
     @EntityScan(basePackageClasses = Tenant.class)
     @EnableJpaRepositories(basePackageClasses = TenantRepository.class)
     static class TestConfig {
