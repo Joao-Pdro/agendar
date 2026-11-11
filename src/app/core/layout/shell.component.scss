@@ -1,0 +1,46 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.shell__header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0 1.5rem;
+  height: 3.5rem;
+  border-bottom: 1px solid #e2e5e9;
+  background: #fff;
+}
+
+.shell__brand {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.shell__nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.shell__link {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  color: #3d4753;
+  text-decoration: none;
+
+  &:hover {
+    background: #f2f4f7;
+  }
+}
+
+.shell__link--active {
+  background: #e8efff;
+  color: #1a4bb8;
+}
+
+.shell__content {
+  flex: 1;
+  padding: 1.5rem;
+}
