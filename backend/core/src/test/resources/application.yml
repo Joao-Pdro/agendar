@@ -1,0 +1,8 @@
+spring:
+  flyway:
+    enabled: false
+
+agendar:
+  security:
+    jwt:
+      secret: teste-secret-com-mais-de-32-caracteres-ok
