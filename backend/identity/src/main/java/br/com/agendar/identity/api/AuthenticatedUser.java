@@ -1,6 +1,4 @@
-package br.com.agendar.identity.internal.security;
-
-import br.com.agendar.identity.internal.Role;
+package br.com.agendar.identity.api;
 
 import java.util.UUID;
 

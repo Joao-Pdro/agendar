@@ -30,6 +30,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <testcontainers.version>1.21.3</testcontainers.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <archunit.version>1.4.1</archunit.version>
     </properties>
 
     <dependencyManagement>

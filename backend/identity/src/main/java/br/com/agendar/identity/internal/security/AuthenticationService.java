@@ -1,5 +1,6 @@
 package br.com.agendar.identity.internal.security;
 
+import br.com.agendar.identity.api.AuthenticatedUser;
 import br.com.agendar.identity.internal.AppUser;
 import br.com.agendar.identity.internal.AppUserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;

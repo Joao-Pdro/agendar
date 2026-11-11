@@ -2,7 +2,7 @@ package br.com.agendar.identity.internal.web;
 
 import br.com.agendar.identity.internal.Tenant;
 import br.com.agendar.identity.internal.TenantRepository;
-import br.com.agendar.identity.internal.security.AuthenticatedUser;
+import br.com.agendar.identity.api.AuthenticatedUser;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

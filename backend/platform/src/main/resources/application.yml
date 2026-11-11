@@ -2,6 +2,10 @@ spring:
   application:
     name: agendar
 
+  # Perfil dev por padrão (tem o segredo do JWT de desenvolvimento). Em produção, SPRING_PROFILES_ACTIVE=prod.
+  profiles:
+    default: dev
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/agendar}
     username: ${DB_USER:agendar}
@@ -32,6 +36,8 @@ server:
 agendar:
   security:
     jwt:
-      # Trocar em produção. Precisa de pelo menos 32 caracteres (HS256).
-      secret: ${JWT_SECRET:dev-only-secret-com-mais-de-32-caracteres}
       ttl: ${JWT_TTL:PT8H}
+    login:
+      # Tentativas falhas do mesmo e-mail dentro da janela antes de bloquear.
+      max-tentativas: ${LOGIN_MAX_TENTATIVAS:5}
+      janela: ${LOGIN_JANELA:PT15M}
