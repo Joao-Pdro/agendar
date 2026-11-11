@@ -21,10 +21,6 @@ module.exports = tseslint.config(
         'error',
         { type: 'element', prefix: 'app', style: 'kebab-case' },
       ],
-      'no-restricted-imports': [
-        'error',
-        { patterns: ['**/features/**'] },
-      ],
     },
   },
   {
