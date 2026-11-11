@@ -36,6 +36,18 @@ public class AvailabilityService {
         this.calculadora = new SlotCalculator(inicio, fim, passo);
     }
 
+    /**
+     * Agendamentos do prestador no intervalo, sem os cancelados, em ordem crescente.
+     */
+    @Transactional(readOnly = true)
+    public List<AppointmentView> agendamentos(UUID tenantId, UUID prestadorId, Instant inicio, Instant fim) {
+        return repositorio.doPrestadorNoPeriodo(tenantId, prestadorId, inicio, fim).stream()
+                .map(a -> new AppointmentView(a.getId(), a.getTenantId(), a.getPrestadorId(),
+                        a.getCustomerId(), a.getServiceId(), a.getStartsAt(), a.getEndsAt(),
+                        a.getStatus().name()))
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public List<SlotCalculator.Slot> slotsLivres(UUID prestadorId, LocalDate data, ZoneId fuso,
                                                  Duration duracao) {
