@@ -20,6 +20,7 @@
     <modules>
         <module>shared</module>
         <module>identity</module>
+        <module>scheduling</module>
         <module>platform</module>
     </modules>
 
@@ -46,6 +47,11 @@
             <dependency>
                 <groupId>br.com.agendar</groupId>
                 <artifactId>identity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>br.com.agendar</groupId>
+                <artifactId>scheduling</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

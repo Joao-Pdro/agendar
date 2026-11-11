@@ -1,0 +1,6 @@
+spring:
+  flyway:
+    enabled: true
+    schemas: scheduling
+    table: flyway_schema_history_scheduling
+    locations: classpath:db/migration/scheduling
