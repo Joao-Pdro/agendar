@@ -1,0 +1,60 @@
+name: backend
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+
+# Um push novo no mesmo PR cancela a execução anterior: não faz sentido gastar runner
+# testando uma versão que já foi substituída.
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: mvnw verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Permissão do wrapper
+        run: chmod +x mvnw
+
+      # `verify` roda os unitários (*Test) e os de integração (*IT). Os de integração usam
+      # Testcontainers, que precisa do Docker — o runner ubuntu-latest já tem.
+      - name: Build e testes
+        run: ./mvnw -B --no-transfer-progress verify
+
+      - name: Guardar relatórios de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/*/target/surefire-reports/
+            backend/*/target/failsafe-reports/
+          retention-days: 7
+          if-no-files-found: ignore
