@@ -4,7 +4,7 @@ import br.com.agendar.core.internal.Service;
 import br.com.agendar.core.internal.ServiceRepository;
 import br.com.agendar.identity.internal.AppUser;
 import br.com.agendar.identity.internal.AppUserRepository;
-import br.com.agendar.identity.internal.Role;
+import br.com.agendar.identity.api.Role;
 import br.com.agendar.identity.internal.Tenant;
 import br.com.agendar.identity.internal.TenantRepository;
 import com.fasterxml.jackson.databind.JsonNode;

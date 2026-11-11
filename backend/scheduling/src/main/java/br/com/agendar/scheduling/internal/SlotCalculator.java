@@ -12,9 +12,9 @@ import java.util.List;
 /**
  * Calcula os horários livres de um prestador em um dia.
  *
- * <p>O cadastro de disponibilidade do prestador (horário de trabalho, férias, bloqueios) ainda
- * não existe — é fase 2 e não tem issue. Enquanto isso, a janela de trabalho é configurável e
- * igual para todos os prestadores do tenant:
+ * <p><b>Provisório:</b> o cadastro de disponibilidade do prestador (horário de trabalho, férias,
+ * bloqueios) ainda não existe — é fase 2 e não tem issue. Enquanto isso, a janela de trabalho é
+ * configurável e igual para todos os prestadores do tenant:
  * {@code agendar.scheduling.expediente.inicio} e {@code ...fim}.
  *
  * <p>Regra do slot: o intervalo {@code [inicio, inicio + duracao)} precisa caber dentro do

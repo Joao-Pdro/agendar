@@ -16,6 +16,11 @@ import java.util.UUID;
 
 /**
  * Consulta de horários livres.
+ *
+ * <p><b>Provisório:</b> o expediente vem de configuração global
+ * ({@code agendar.scheduling.expediente.*}), igual para todos os prestadores, porque o cadastro
+ * de disponibilidade do prestador (horário de trabalho, férias, bloqueios) ainda não existe —
+ * é fase 2 e não tem issue. Quando existir, esta classe passa a receber a janela do prestador.
  */
 @Service
 public class AvailabilityService {

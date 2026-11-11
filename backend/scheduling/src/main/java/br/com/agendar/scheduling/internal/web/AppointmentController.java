@@ -1,7 +1,7 @@
 package br.com.agendar.scheduling.internal.web;
 
 import br.com.agendar.core.api.ServiceView;
-import br.com.agendar.identity.internal.security.AuthenticatedUser;
+import br.com.agendar.identity.api.AuthenticatedUser;
 import br.com.agendar.scheduling.api.SchedulingFacade;
 import br.com.agendar.scheduling.internal.AvailabilityService;
 import br.com.agendar.scheduling.internal.SlotCalculator;
