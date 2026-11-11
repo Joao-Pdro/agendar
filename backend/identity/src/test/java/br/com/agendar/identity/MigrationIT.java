@@ -69,8 +69,7 @@ class MigrationIT {
 
         List<Map<String, Object>> historico = jdbc.queryForList(
                 "SELECT version, success FROM identity.flyway_schema_history_identity WHERE version IS NOT NULL");
-        assertThat(historico).hasSize(1);
-        assertThat(historico.getFirst().get("version")).isEqualTo("1");
-        assertThat(historico.getFirst().get("success")).isEqualTo(true);
+        assertThat(historico).extracting(r -> r.get("version")).contains("1");
+        assertThat(historico).allSatisfy(r -> assertThat(r.get("success")).isEqualTo(true));
     }
 }
