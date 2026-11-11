@@ -20,7 +20,6 @@
     <modules>
         <module>shared</module>
         <module>identity</module>
-        <module>core</module>
         <module>scheduling</module>
         <module>core</module>
         <module>platform</module>
