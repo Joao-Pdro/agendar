@@ -44,3 +44,24 @@ Flyway ligado em `classpath:db/migration`. Cada módulo de domínio carrega as
 suas migrations a partir de `db/migration/<modulo>/`, com schema e tabela de
 histórico próprios (`flyway_schema_history_<modulo>`), para que os `V1__` de
 módulos diferentes não colidam.
+
+## Provisório: expediente do prestador
+
+O cálculo de slots (`GET /providers/{id}/slots`) usa um **expediente global configurável**, igual
+para todos os prestadores:
+
+```yaml
+agendar:
+  scheduling:
+    expediente:
+      inicio: "08:00"
+      fim: "18:00"
+    slot:
+      passo: PT30M
+    fuso: UTC
+```
+
+Isso existe porque o cadastro de disponibilidade do prestador (horário de trabalho, férias,
+bloqueios) ainda não foi feito. **Não é o comportamento final:** quando a disponibilidade por
+prestador existir, o `SlotCalculator` passa a receber a janela do prestador em vez desta
+configuração.
