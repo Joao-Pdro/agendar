@@ -1,13 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+
 import { AppComponent } from './app.component';
 import { routes } from './app.routes';
+import { provideApi } from './core/http/provide-api';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideRouter(routes)],
+      // A rota /agenda carrega a agenda real, que depende do HttpClient.
+      providers: [provideRouter(routes), provideApi(''), provideHttpClientTesting()],
     }).compileComponents();
   });
 

@@ -1,0 +1,42 @@
+<section class="day-grid" [attr.data-date]="date">
+  <header class="day-grid__header">
+    <h2>{{ date }}</h2>
+  </header>
+
+  <div class="day-grid__appointments">
+    <h3>Agendados ({{ appointments.length }})</h3>
+    @if (appointments.length === 0) {
+      <p class="day-grid__empty">Nenhum agendamento neste dia.</p>
+    }
+    <ul class="day-grid__list">
+      @for (appointment of appointments; track appointment.id) {
+        <li class="day-grid__appointment" [attr.data-status]="appointment.status">
+          <strong>{{ timeOf(appointment.startsAt) }}–{{ timeOf(appointment.endsAt) }}</strong>
+          <span class="day-grid__status">{{ appointment.status }}</span>
+          <small>{{ offsetOf(appointment.startsAt) }}</small>
+        </li>
+      }
+    </ul>
+  </div>
+
+  <div class="day-grid__slots">
+    <h3>Horários livres ({{ slots.length }})</h3>
+    @if (slots.length === 0) {
+      <p class="day-grid__empty">Nenhum horário livre neste dia.</p>
+    }
+    <ul class="day-grid__list">
+      @for (slot of slots; track slot.startsAt) {
+        <li>
+          <button
+            type="button"
+            class="day-grid__slot"
+            (click)="onSlotClick(slot)"
+            [attr.aria-label]="'Agendar às ' + timeOf(slot.startsAt)"
+          >
+            {{ timeOf(slot.startsAt) }}
+          </button>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

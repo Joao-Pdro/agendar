@@ -3,24 +3,37 @@ import { Observable } from 'rxjs';
 
 import { ApiClient } from '../../../core/http/api-client';
 import type { ApiError } from '../../../core/http/api-error';
-import type { AppointmentView } from '../models/appointment-view';
+import type { Appointment, CreateAppointmentRequest, Slot } from '../models/scheduling';
 
 /**
- * Acesso HTTP do domínio de agenda. Componentes injetam este serviço,
- * nunca `HttpClient`.
+ * Acesso HTTP do domínio de agenda, seguindo `docs/openapi/scheduling.yaml` (#9).
+ * Componentes injetam este serviço, nunca `HttpClient`.
  */
 @Injectable({ providedIn: 'root' })
 export class SchedulingApi {
   private readonly api = inject(ApiClient);
 
-  /** Agendamentos de um prestador no intervalo informado (ISO 8601, UTC). */
-  listAppointments(
+  /** Horários livres de um prestador num dia (`YYYY-MM-DD`), conforme o contrato. */
+  listFreeSlots(
     providerId: string,
-    from: string,
-    to: string,
-  ): Observable<AppointmentView[]> {
-    return this.api.get<AppointmentView[]>('/scheduling/appointments', {
-      params: { providerId, from, to },
+    date: string,
+    durationMinutes: number,
+  ): Observable<Slot[]> {
+    return this.api.get<Slot[]>(`/providers/${providerId}/slots`, {
+      params: { date, durationMinutes },
+    });
+  }
+
+  /**
+   * Cria um agendamento. `Idempotency-Key` é obrigatório no contrato: reenviar
+   * a mesma chave devolve o mesmo agendamento em vez de criar outro.
+   */
+  createAppointment(
+    body: CreateAppointmentRequest,
+    idempotencyKey: string,
+  ): Observable<Appointment> {
+    return this.api.post<Appointment>('/appointments', body, {
+      headers: { 'Idempotency-Key': idempotencyKey },
     });
   }
 

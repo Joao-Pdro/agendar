@@ -1,0 +1,28 @@
+<section class="week-grid">
+  @for (day of days; track day.date) {
+    <article class="week-grid__day" [attr.data-date]="day.date">
+      <button
+        type="button"
+        class="week-grid__day-button"
+        (click)="onDayClick(day.date)"
+        [attr.aria-label]="'Ver o dia ' + day.date"
+      >
+        <span class="week-grid__label">{{ day.label }}</span>
+        <span class="week-grid__date">{{ day.date }}</span>
+      </button>
+
+      <ul class="week-grid__appointments">
+        @for (appointment of appointmentsOf(day); track appointment.id) {
+          <li [attr.data-status]="appointment.status">
+            {{ timeOf(appointment.startsAt) }} · {{ appointment.status }}
+          </li>
+        }
+        @if (appointmentsOf(day).length === 0) {
+          <li class="week-grid__empty">—</li>
+        }
+      </ul>
+
+      <p class="week-grid__slots">{{ day.slots.length }} horário(s) livre(s)</p>
+    </article>
+  }
+</section>

@@ -1,0 +1,99 @@
+<section class="agenda">
+  <header class="agenda__header">
+    <h1>Agenda</h1>
+
+    <div class="agenda__controls">
+      <label class="agenda__field">
+        <span>Prestador (id)</span>
+        <input
+          type="text"
+          [ngModel]="providerIdInput()"
+          (ngModelChange)="providerIdInput.set($event)"
+          placeholder="3a7d9c22-1f4b-4e6a-9f0d-2b5c8e1a7d33"
+          name="providerId"
+        />
+      </label>
+      <button type="button" class="agenda__apply" (click)="applyProvider()">Aplicar</button>
+
+      <label class="agenda__field">
+        <span>Data</span>
+        <input
+          type="date"
+          [ngModel]="store.selectedDate()"
+          (ngModelChange)="changeDate($event)"
+          name="date"
+        />
+      </label>
+
+      <div class="agenda__views" role="group" aria-label="Visão da agenda">
+        <button
+          type="button"
+          [class.agenda__view--active]="store.view() === 'dia'"
+          (click)="setView('dia')"
+        >
+          Dia
+        </button>
+        <button
+          type="button"
+          [class.agenda__view--active]="store.view() === 'semana'"
+          (click)="setView('semana')"
+        >
+          Semana
+        </button>
+      </div>
+    </div>
+
+    @if (store.usingMockAppointments) {
+      <p class="agenda__notice">
+        Agendamentos em modo de exemplo: o endpoint de listagem por prestador ainda não existe.
+        Os horários livres são reais.
+      </p>
+    }
+  </header>
+
+  @if (!hasProvider()) {
+    <p class="agenda__hint">Informe o id de um prestador para ver a agenda.</p>
+  }
+
+  @if (store.loading()) {
+    <p class="agenda__loading">Carregando horários…</p>
+  }
+
+  @if (store.error(); as error) {
+    @if (error.status !== 409) {
+      <p class="agenda__error" role="alert">
+        {{ error.title }}
+        @if (error.detail) {
+          — {{ error.detail }}
+        }
+      </p>
+    }
+  }
+
+  <div class="agenda__content">
+    <div class="agenda__grid">
+      @if (store.view() === 'dia') {
+        <app-day-grid
+          [date]="store.selectedDate()"
+          [slots]="store.slots()"
+          [appointments]="store.appointments()"
+          (slotSelected)="onSlotSelected($event)"
+        />
+      } @else {
+        <app-week-grid [days]="weekDays()" (daySelected)="onWeekDaySelected($event)" />
+      }
+    </div>
+
+    @if (selectedSlot(); as slot) {
+      <app-appointment-form
+        [slot]="slot"
+        [idempotencyKey]="selectedSlotKey()"
+        [submitting]="submitting()"
+        [error]="store.error()"
+        [serviceLabel]="serviceLabel"
+        (confirmed)="confirmBooking()"
+        (dismissed)="closeForm()"
+      />
+    }
+  </div>
+</section>

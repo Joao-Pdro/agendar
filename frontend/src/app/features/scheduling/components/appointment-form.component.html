@@ -1,0 +1,28 @@
+<form class="appointment-form" (submit)="onConfirm(); $event.preventDefault()">
+  <h2>Novo agendamento</h2>
+
+  <p class="appointment-form__slot">{{ slotLabel }}</p>
+  @if (serviceLabel) {
+    <p class="appointment-form__service">{{ serviceLabel }}</p>
+  }
+
+  @if (conflictMessage) {
+    <p class="appointment-form__conflict" role="alert">{{ conflictMessage }}</p>
+  }
+
+  @if (otherError) {
+    <p class="appointment-form__error" role="alert">
+      {{ otherError.title }}
+      @if (otherError.detail) {
+        — {{ otherError.detail }}
+      }
+    </p>
+  }
+
+  <div class="appointment-form__actions">
+    <button type="submit" class="appointment-form__confirm" [disabled]="submitting">
+      {{ submitting ? 'Agendando…' : 'Confirmar' }}
+    </button>
+    <button type="button" class="appointment-form__cancel" (click)="onCancel()">Cancelar</button>
+  </div>
+</form>
