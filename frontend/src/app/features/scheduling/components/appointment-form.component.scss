@@ -1,0 +1,74 @@
+:host {
+  display: block;
+}
+
+.appointment-form {
+  border: 1px solid #e2e5e9;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #fff;
+
+  h2 {
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+.appointment-form__slot {
+  margin: 0;
+  font-weight: 600;
+}
+
+.appointment-form__service {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #5b6672;
+}
+
+.appointment-form__conflict {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  background: #fdf2c7;
+  color: #7a5b00;
+  font-size: 0.875rem;
+}
+
+.appointment-form__error {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  background: #fbe3e5;
+  color: #b02a37;
+  font-size: 0.875rem;
+}
+
+.appointment-form__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.appointment-form__confirm {
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: #1a4bb8;
+  color: #fff;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.appointment-form__cancel {
+  padding: 0.5rem 1rem;
+  border: 1px solid #cbd2da;
+  border-radius: 0.25rem;
+  background: #fff;
+  cursor: pointer;
+}

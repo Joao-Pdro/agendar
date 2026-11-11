@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -8,6 +8,8 @@ import type { ApiError } from './api-error';
 export interface ApiRequestOptions {
   /** Query string da requisição. Valores `null`/`undefined` são ignorados. */
   params?: Record<string, string | number | boolean | null | undefined>;
+  /** Headers extras da requisição, como `Idempotency-Key`. */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -26,24 +28,30 @@ export class ApiClient {
   ) {}
 
   get<T>(path: string, options?: ApiRequestOptions): Observable<T> {
-    return this.http.get<T>(this.url(path), { params: this.toParams(options?.params) });
+    return this.http.get<T>(this.url(path), {
+      params: this.toParams(options?.params),
+      headers: this.toHeaders(options?.headers),
+    });
   }
 
   post<T>(path: string, body: unknown, options?: ApiRequestOptions): Observable<T> {
     return this.http.post<T>(this.url(path), body, {
       params: this.toParams(options?.params),
+      headers: this.toHeaders(options?.headers),
     });
   }
 
   put<T>(path: string, body: unknown, options?: ApiRequestOptions): Observable<T> {
     return this.http.put<T>(this.url(path), body, {
       params: this.toParams(options?.params),
+      headers: this.toHeaders(options?.headers),
     });
   }
 
   delete<T>(path: string, options?: ApiRequestOptions): Observable<T> {
     return this.http.delete<T>(this.url(path), {
       params: this.toParams(options?.params),
+      headers: this.toHeaders(options?.headers),
     });
   }
 
@@ -68,6 +76,15 @@ export class ApiClient {
       }
     }
     return httpParams;
+  }
+
+  private toHeaders(
+    headers: ApiRequestOptions['headers'],
+  ): HttpHeaders | undefined {
+    if (!headers) {
+      return undefined;
+    }
+    return new HttpHeaders(headers);
   }
 }
 
