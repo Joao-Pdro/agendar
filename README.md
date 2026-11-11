@@ -8,24 +8,27 @@ Monolito distribuído: backend Java (Spring Boot) + frontend Angular, no mesmo r
 
 ```
 agendar/
-├── pom.xml              # parent Maven do backend
-├── platform/            # bootstrap Spring Boot
-├── shared/              # tipos compartilhados do backend
+├── backend/             # Maven: pom.xml, platform/, shared/, mvnw
+│   ├── platform/        # bootstrap Spring Boot
+│   ├── shared/          # tipos compartilhados do backend
+│   └── docker-compose.yml  # PostgreSQL
 ├── frontend/            # aplicação Angular (package.json aqui)
-├── docker-compose.yml   # PostgreSQL
 └── README.md
 ```
 
-Frontend e backend ficam em pastas separadas porque têm toolchains diferentes
-(Maven e npm) e ciclos de build independentes. Nada de `src/` na raiz — o
-`src/` que existe fica dentro de `platform/`, `shared/` ou `frontend/src/`.
+Backend e frontend ficam cada um na sua pasta porque têm toolchains diferentes
+(Maven e npm) e ciclos de build independentes. A raiz só tem as duas pastas e
+este README: nenhum `pom.xml` e nenhum `package.json` lado a lado, e nenhum
+build varre o diretório do outro.
 
 ## Backend
 
-Java 21 / Spring Boot 3.5, Maven multi-módulo, PostgreSQL com Flyway. Resumo
-(como rodar e testar em detalhe: [`BACKEND.md`](BACKEND.md)).
+Java 21 / Spring Boot 3.5, Maven multi-módulo, PostgreSQL com Flyway. Tudo do
+backend está em `backend/` (detalhe em [`backend/BACKEND.md`](backend/BACKEND.md)).
+Rodar de dentro de `backend/`:
 
 ```bash
+cd backend
 docker compose up -d db
 ./mvnw -DskipTests install   # instala shared no repositório local
 ./mvnw spring-boot:run -pl platform

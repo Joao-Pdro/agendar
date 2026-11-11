@@ -10,9 +10,11 @@ Java 21 / Spring Boot 3.5, Maven multi-módulo, PostgreSQL com Flyway.
 | `shared` | tipos-base compartilhados (sem dependência de framework de domínio) |
 
 Novos módulos de domínio (`identity`, `scheduling`, ...) entram no `<modules>`
-do `pom.xml` da raiz e publicam só `api/`; o resto fica em `internal/`.
+do `backend/pom.xml` e publicam só `api/`; o resto fica em `internal/`.
 
 ## Como rodar
+
+Todos os comandos abaixo rodam de dentro de `backend/`.
 
 ```bash
 docker compose up -d db
