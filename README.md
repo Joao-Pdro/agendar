@@ -8,6 +8,7 @@ Monolito distribuído: backend Java (Spring Boot) + frontend Angular, no mesmo r
 
 ```
 agendar/
+├── .github/workflows/   # CI: backend.yml e frontend.yml
 ├── backend/             # Maven: pom.xml, platform/, shared/, mvnw
 │   ├── platform/        # bootstrap Spring Boot
 │   ├── shared/          # tipos compartilhados do backend
@@ -74,3 +75,22 @@ Os testes rodam no browser. Se o Chrome não estiver no PATH:
 ```bash
 CHROME_BIN=/caminho/para/chrome npm run test:ci
 ```
+
+## Integração contínua
+
+Dois workflows de GitHub Actions rodam em `pull_request` e em `push` para `main`. Cada um só
+dispara quando muda arquivo da sua área, então um PR de backend não gasta runner com o frontend.
+
+| Workflow | Quando roda | O que executa |
+|---|---|---|
+| `backend.yml` | muda algo em `backend/**` | JDK 21 + `./mvnw verify` (unitários `*Test` e integração `*IT` com Testcontainers, que usa o Docker do runner) |
+| `frontend.yml` | muda algo em `frontend/**` | Node 20 + `npm ci` + `npm run verify` (lint, fronteiras, uso de HTTP, testes no Karma e build) |
+
+Os dois usam cache (Maven e npm) e cancelam a execução anterior quando chega um push novo no
+mesmo PR. Os relatórios de teste e o build do frontend ficam como artefato por 7 dias.
+
+O repositório é **público**, então os runners hospedados do GitHub são gratuitos. Se virar
+privado, o consumo passa a contar na cota do plano e deve ser conferido em billing.
+
+**Check obrigatório na `main`:** exigir esses dois checks antes do merge é configuração de
+repositório (Settings → Branches → branch protection), feita fora do código, pelo dono do repo.
