@@ -13,10 +13,17 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  */
 @SpringBootApplication(scanBasePackages = {
         "br.com.agendar.platform",
-        "br.com.agendar.identity"
+        "br.com.agendar.identity",
+        "br.com.agendar.scheduling"
 })
-@EnableJpaRepositories(basePackages = "br.com.agendar.identity")
-@EntityScan(basePackages = "br.com.agendar.identity")
+@EnableJpaRepositories(basePackages = {
+        "br.com.agendar.identity",
+        "br.com.agendar.scheduling"
+})
+@EntityScan(basePackages = {
+        "br.com.agendar.identity",
+        "br.com.agendar.scheduling"
+})
 public class AgendarApplication {
 
     public static void main(String[] args) {
