@@ -1,7 +1,10 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+
 import { ShellComponent } from './shell.component';
+import { provideApi } from '../http/provide-api';
 
 @Component({ selector: 'app-stub', standalone: true, template: '' })
 class StubComponent {}
@@ -10,7 +13,11 @@ describe('ShellComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ShellComponent],
-      providers: [provideRouter([{ path: '**', component: StubComponent }])],
+      providers: [
+        provideRouter([{ path: '**', component: StubComponent }]),
+        provideApi(''),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
   });
 
