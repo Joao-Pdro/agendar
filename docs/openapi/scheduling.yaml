@@ -1,0 +1,409 @@
+openapi: 3.1.0
+
+info:
+  title: Agendar — API de agendamento
+  version: 0.1.0
+  description: |
+    Contrato da agenda do módulo `scheduling`.
+
+    Este documento define **apenas o contrato**. Cálculo de slots, máquina de estados,
+    autenticação e persistência são implementados nas issues seguintes.
+
+    ## Convenções
+
+    - **Tempo**: todo instante é ISO-8601 **com offset explícito** (ex.: `2026-03-10T13:00:00Z`
+      ou `2026-03-10T10:00:00-03:00`). A persistência é em **UTC**; a conversão para o fuso do
+      tenant acontece na borda.
+    - **Identificadores**: UUID em string.
+    - **Multi-tenant**: o tenant vem do token de autenticação (issue #5), nunca do corpo ou da
+      URL. Nenhum dado de outro tenant é visível.
+    - **Datas de filtro**: `date=YYYY-MM-DD` é interpretada no fuso do tenant.
+
+    ## Perfis e permissões
+
+    | Rota | Admin do tenant | Recepção | Prestador |
+    |---|---|---|---|
+    | `GET /providers/{providerId}/slots` | qualquer prestador do tenant | qualquer prestador do tenant | só a própria agenda |
+    | `POST /appointments` | qualquer prestador do tenant | qualquer prestador do tenant | só a própria agenda |
+
+    O cliente final **não tem login** no MVP. O agendamento feito por ele, quando a flag
+    `customer_self_booking` do tenant estiver ligada, entra pela mesma rota `POST /appointments`
+    com um token de escopo restrito (issue futura).
+  contact:
+    name: Agendar
+
+servers:
+  - url: http://localhost:8080
+    description: Ambiente local
+
+tags:
+  - name: slots
+    description: Horários livres de um prestador
+  - name: appointments
+    description: Agendamento de serviços
+
+paths:
+  /providers/{providerId}/slots:
+    get:
+      tags: [slots]
+      operationId: listFreeSlots
+      summary: Lista os horários livres de um prestador em um dia
+      description: |
+        Devolve os intervalos em que o prestador tem agenda livre no dia pedido,
+        considerando a duração informada do serviço.
+
+        Um slot é considerado livre quando:
+        - começa e termina dentro do expediente do prestador;
+        - não sobrepõe nenhum agendamento com status diferente de `CANCELADO`;
+        - respeita o intervalo de deslocamento configurado, se houver.
+
+        Slot pedido fora do expediente ou em dia sem expediente simplesmente não aparece na
+        lista — a resposta é `200` com lista vazia, não erro.
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          description: Identificador do prestador.
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          required: true
+          description: Dia a consultar, no fuso do tenant.
+          schema:
+            type: string
+            format: date
+            example: "2026-03-10"
+        - name: durationMinutes
+          in: query
+          required: true
+          description: Duração do serviço, em minutos. Precisa ser maior que zero.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1440
+            example: 60
+      responses:
+        "200":
+          description: Lista de slots livres, em ordem crescente de `startsAt`. Pode ser vazia.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Slot"
+              example:
+                - startsAt: "2026-03-10T09:00:00-03:00"
+                  endsAt: "2026-03-10T10:00:00-03:00"
+                - startsAt: "2026-03-10T10:00:00-03:00"
+                  endsAt: "2026-03-10T11:00:00-03:00"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /appointments:
+    post:
+      tags: [appointments]
+      operationId: createAppointment
+      summary: Cria um agendamento
+      description: |
+        Cria um agendamento para o prestador no horário pedido.
+
+        ### Idempotência
+
+        O header `Idempotency-Key` é **obrigatório**. Ele é o que impede um clique duplo de
+        virar dois agendamentos:
+
+        - A primeira requisição com uma chave cria o agendamento e responde `201`.
+        - Repetir a mesma chave devolve **o mesmo agendamento**, com o mesmo corpo e o mesmo
+          `201` — não cria outro.
+        - Repetir a chave com **corpo diferente** responde `409`, sinalizando uso indevido da
+          chave.
+        - A chave vale por 24 horas e é única por tenant.
+
+        ### Conflito de horário
+
+        Dois agendamentos sobrepostos para o mesmo prestador são impedidos no banco por uma
+        constraint de exclusão. Quando isso acontece, a resposta é `409` com o código
+        `SLOT_CONFLICT`. Um agendamento `CANCELADO` não bloqueia o horário.
+
+        ### Regra do prestador
+
+        Prestador só pode agendar na **própria** agenda. Tentar agendar para outro prestador
+        responde `403` — nunca `201` com o agendamento de outra pessoa.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: |
+            Chave única da tentativa de criação, gerada pelo cliente (UUID ou string opaca de
+            até 128 caracteres). O mesmo valor reaproveitado devolve o mesmo agendamento.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+            example: "8f14e45f-ceea-467a-9a3c-1b6b1a2c4d5e"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppointmentRequest"
+            example:
+              providerId: "3a7d9c22-1f4b-4e6a-9f0d-2b5c8e1a7d33"
+              customerId: "b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e"
+              serviceId: "c9d8e7f6-a5b4-4c3d-9e2f-1a0b9c8d7e6f"
+              startsAt: "2026-03-10T13:00:00Z"
+      responses:
+        "201":
+          description: Agendamento criado (ou o já criado com a mesma `Idempotency-Key`).
+          headers:
+            Location:
+              description: URL do agendamento criado.
+              schema:
+                type: string
+                format: uri
+                example: /appointments/0f1e2d3c-4b5a-4968-8776-655443322110
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: |
+            Horário em conflito (`SLOT_CONFLICT`) ou `Idempotency-Key` reaproveitada com corpo
+            diferente (`IDEMPOTENCY_KEY_REUSED`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+              examples:
+                slotConflict:
+                  value:
+                    type: "https://agendar.local/problems/slot-conflict"
+                    title: "Horário indisponível"
+                    status: 409
+                    code: "SLOT_CONFLICT"
+                    detail: "O prestador já tem agendamento nesse intervalo."
+                idempotencyReused:
+                  value:
+                    type: "https://agendar.local/problems/idempotency-key-reused"
+                    title: "Idempotency-Key reutilizada com corpo diferente"
+                    status: 409
+                    code: "IDEMPOTENCY_KEY_REUSED"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+components:
+  schemas:
+    Slot:
+      type: object
+      description: Intervalo livre para agendamento.
+      required: [startsAt, endsAt]
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+          description: Início do slot, ISO-8601 com offset explícito.
+          example: "2026-03-10T09:00:00-03:00"
+        endsAt:
+          type: string
+          format: date-time
+          description: Fim do slot, ISO-8601 com offset explícito. Sempre após `startsAt`.
+          example: "2026-03-10T10:00:00-03:00"
+
+    CreateAppointmentRequest:
+      type: object
+      additionalProperties: false
+      required: [providerId, customerId, serviceId, startsAt]
+      properties:
+        providerId:
+          type: string
+          format: uuid
+          description: Prestador que vai executar o serviço.
+        customerId:
+          type: string
+          format: uuid
+          description: Cliente que contratou o serviço.
+        serviceId:
+          type: string
+          format: uuid
+          description: Serviço do catálogo. A duração dele define o fim do agendamento.
+        startsAt:
+          type: string
+          format: date-time
+          description: |
+            Início do agendamento, ISO-8601 com offset explícito. Persistido em UTC.
+
+    Appointment:
+      type: object
+      required: [id, tenantId, providerId, customerId, serviceId, startsAt, endsAt, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        providerId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        startsAt:
+          type: string
+          format: date-time
+          description: Início, com offset explícito.
+        endsAt:
+          type: string
+          format: date-time
+          description: Fim calculado pela duração do serviço, com offset explícito.
+        status:
+          $ref: "#/components/schemas/AppointmentStatus"
+        createdAt:
+          type: string
+          format: date-time
+          description: Em UTC.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Em UTC.
+
+    AppointmentStatus:
+      type: string
+      description: |
+        Máquina de estados explícita. As transições válidas são definidas em issue própria;
+        neste contrato o campo só é exposto.
+      enum:
+        - PENDENTE
+        - CONFIRMADO
+        - EM_EXECUCAO
+        - CONCLUIDO
+        - CANCELADO
+        - NO_SHOW
+
+    Problem:
+      type: object
+      description: Erro no formato RFC 9457 (`application/problem+json`).
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        code:
+          type: string
+          description: Código estável para o cliente decidir o que fazer, sem depender do texto.
+        errors:
+          type: array
+          description: Detalhe por campo, quando o erro é de validação.
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+                example: "startsAt"
+              message:
+                type: string
+                example: "deve ser uma data futura"
+
+  responses:
+    BadRequest:
+      description: Requisição malformada (JSON inválido, header obrigatório ausente).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: "https://agendar.local/problems/bad-request"
+            title: "Requisição inválida"
+            status: 400
+            code: "BAD_REQUEST"
+            detail: "Header obrigatório ausente: Idempotency-Key"
+    Unauthorized:
+      description: Sem token, ou token inválido/expirado.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: "https://agendar.local/problems/unauthorized"
+            title: "Não autenticado"
+            status: 401
+            code: "UNAUTHORIZED"
+    Forbidden:
+      description: |
+        Autenticado, mas sem permissão. Inclui o prestador tentando ver ou agendar na agenda de
+        outro prestador, e perfis sem acesso a recursos do tenant.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: "https://agendar.local/problems/forbidden"
+            title: "Acesso negado"
+            status: 403
+            code: "PROVIDER_AGENDA_FORBIDDEN"
+            detail: "Prestador só acessa a própria agenda."
+    NotFound:
+      description: Prestador, serviço ou cliente inexistente no tenant.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            providerNotFound:
+              value:
+                type: "https://agendar.local/problems/not-found"
+                title: "Prestador não encontrado"
+                status: 404
+                code: "PROVIDER_NOT_FOUND"
+            serviceNotFound:
+              value:
+                type: "https://agendar.local/problems/not-found"
+                title: "Serviço não encontrado"
+                status: 404
+                code: "SERVICE_NOT_FOUND"
+    UnprocessableEntity:
+      description: Corpo sintaticamente válido, mas com violação de regra (data no passado, duração inválida).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: "https://agendar.local/problems/validation"
+            title: "Validação falhou"
+            status: 422
+            code: "VALIDATION_ERROR"
+            errors:
+              - field: "startsAt"
+                message: "deve ser uma data futura"
