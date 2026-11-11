@@ -10,7 +10,8 @@
     "lint": "eslint \"src/**/*.{ts,html}\"",
     "test:ci": "ng test --watch=false --browsers=ChromeHeadless",
     "check:boundaries": "node scripts/check-shared-boundaries.js",
-    "verify": "npm run lint && npm run check:boundaries && npm run test:ci && npm run build"
+    "verify": "npm run lint && npm run check:boundaries && npm run check:http-usage && npm run test:ci && npm run build",
+    "check:http-usage": "node scripts/check-http-usage.js"
   },
   "private": true,
   "dependencies": {
