@@ -153,6 +153,22 @@ class ProviderCatalogIT {
     }
 
     @Test
+    void usuarioDeOutroTenantERecusado() {
+        String usuarioDoTenantB = userIdDe(adminB);
+
+        ResponseEntity<String> resposta = criar(adminA, "Carlos", usuarioDoTenantB);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(resposta.getBody()).contains("USUARIO_INVALIDO");
+    }
+
+    @Test
+    void usuarioInexistenteERecusado() {
+        assertThat(criar(adminA, "Carlos", UUID.randomUUID().toString()).getStatusCode())
+                .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Test
     void semTokenResponde401() {
         assertThat(rest.getForEntity("/providers", String.class).getStatusCode())
                 .isEqualTo(HttpStatus.UNAUTHORIZED);

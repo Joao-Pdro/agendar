@@ -17,4 +17,11 @@ public interface IdentityFacade {
      * Tenant inexistente responde {@code false}.
      */
     boolean isCustomerSelfBookingEnabled(UUID tenantId);
+
+    /**
+     * Verdadeiro quando o usuário existe, está ativo e pertence ao tenant informado.
+     *
+     * <p>Usado pelo {@code core} para recusar vínculo de prestador com usuário de outro tenant.
+     */
+    boolean usuarioPertenceAoTenant(UUID tenantId, UUID userId);
 }

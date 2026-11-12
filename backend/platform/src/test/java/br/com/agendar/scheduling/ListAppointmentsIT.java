@@ -53,6 +53,7 @@ class ListAppointmentsIT {
     @Autowired private ServiceRepository servicos;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private br.com.agendar.core.internal.provider.ProviderRepository prestadoresProvider;
 
     private UUID tenantA;
     private UUID tenantB;
@@ -69,6 +70,7 @@ class ListAppointmentsIT {
 
     @BeforeEach
     void preparar() {
+        prestadoresProvider.deleteAll();
         servicos.deleteAll();
         users.deleteAll();
         tenants.deleteAll();
@@ -88,6 +90,10 @@ class ListAppointmentsIT {
                 passwordEncoder.encode(SENHA), "Rec", Role.RECEPCAO));
         users.saveAndFlush(new AppUser(UUID.randomUUID(), tenantB, "rec@b.com",
                 passwordEncoder.encode(SENHA), "RecB", Role.RECEPCAO));
+
+        // #40: id do prestador != id do usuário.
+        prestadorA = criarPrestador(prestadorA, "P1");
+        outroPrestadorA = criarPrestador(outroPrestadorA, "P2");
 
         servicoA = UUID.randomUUID();
         servicos.saveAndFlush(new Service(servicoA, tenantA, "Corte", 60, new BigDecimal("100.00")));
@@ -168,6 +174,13 @@ class ListAppointmentsIT {
     }
 
     // ---------------------------------------------------------------- helpers
+
+    private UUID criarPrestador(UUID userId, String nome) {
+        var prestador = new br.com.agendar.core.internal.provider.Provider(
+                UUID.randomUUID(), tenantA, nome, userId);
+        prestadoresProvider.saveAndFlush(prestador);
+        return prestador.getId();
+    }
 
     private String criarAgendamento(String token, UUID providerId, Instant inicio) {
         Map<String, Object> corpo = new HashMap<>();
