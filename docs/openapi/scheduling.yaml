@@ -41,6 +41,8 @@ tags:
     description: Horários livres de um prestador
   - name: appointments
     description: Agendamento de serviços
+  - name: availability
+    description: Expediente semanal do tenant e do prestador
 
 paths:
   /providers/{providerId}/slots:
@@ -168,6 +170,155 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /availability/tenant:
+    get:
+      tags: [availability]
+      operationId: getTenantAvailability
+      summary: Expediente padrão do tenant e fuso
+      description: |
+        Devolve o fuso do tenant e o expediente semanal padrão, em **hora local** do tenant.
+
+        O expediente é guardado como hora local mais o fuso, e não em UTC: ele se repete toda
+        semana, e um valor em UTC deslocaria a grade quando o horário de verão mudasse.
+        Agendamentos e a API continuam em UTC, com offset explícito.
+      responses:
+        "200":
+          description: Expediente do tenant.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expediente"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    put:
+      tags: [availability]
+      operationId: replaceTenantAvailability
+      summary: Substitui o expediente padrão do tenant
+      description: Só o admin do tenant. A lista enviada **substitui** o conjunto anterior.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpedienteRequest"
+            example:
+              janelas:
+                - weekday: "MONDAY"
+                  start: "08:00"
+                  end: "18:00"
+                - weekday: "TUESDAY"
+                  start: "08:00"
+                  end: "18:00"
+      responses:
+        "200":
+          description: Expediente salvo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expediente"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /availability/tenant/timezone:
+    put:
+      tags: [availability]
+      operationId: replaceTenantTimezone
+      summary: Altera o fuso do tenant
+      description: |
+        Só o admin. Afeta como a hora local do expediente é convertida em UTC. O valor é um
+        identificador de fuso IANA (ex.: `America/Sao_Paulo`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [timezone]
+              properties:
+                timezone:
+                  type: string
+                  example: "America/Sao_Paulo"
+      responses:
+        "200":
+          description: Fuso salvo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expediente"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /availability/providers/{providerId}:
+    get:
+      tags: [availability]
+      operationId: getProviderAvailability
+      summary: Expediente de um prestador
+      description: |
+        Devolve o expediente do prestador. Se ele não tiver expediente próprio, devolve o padrão
+        do tenant com `origem: tenant`.
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Expediente em vigor para o prestador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expediente"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [availability]
+      operationId: replaceProviderAvailability
+      summary: Substitui o expediente de um prestador
+      description: |
+        Admin e recepção configuram qualquer prestador. O prestador configura só o próprio, e
+        isso depende do vínculo usuário → prestador.
+
+        Ter qualquer linha aqui substitui **integralmente** o padrão do tenant: dia sem linha é
+        dia sem atendimento.
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpedienteRequest"
+      responses:
+        "200":
+          description: Expediente salvo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expediente"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
@@ -362,6 +513,50 @@ components:
         - CONCLUIDO
         - CANCELADO
         - NO_SHOW
+
+    Expediente:
+      type: object
+      required: [timezone, origem, janelas]
+      properties:
+        timezone:
+          type: string
+          description: Fuso IANA do tenant.
+          example: "America/Sao_Paulo"
+        origem:
+          type: string
+          description: De onde veio o expediente devolvido.
+          enum: [tenant, provider]
+        janelas:
+          type: array
+          items:
+            $ref: "#/components/schemas/Janela"
+
+    ExpedienteRequest:
+      type: object
+      required: [janelas]
+      properties:
+        janelas:
+          type: array
+          description: Substitui todo o expediente anterior. Lista vazia = nenhum atendimento.
+          items:
+            $ref: "#/components/schemas/Janela"
+
+    Janela:
+      type: object
+      required: [weekday, start, end]
+      properties:
+        weekday:
+          type: string
+          description: Dia da semana ISO-8601.
+          enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+        start:
+          type: string
+          description: Início em hora local do tenant, formato HH:mm.
+          example: "08:00"
+        end:
+          type: string
+          description: Fim em hora local do tenant. Precisa ser depois de start.
+          example: "18:00"
 
     Problem:
       type: object

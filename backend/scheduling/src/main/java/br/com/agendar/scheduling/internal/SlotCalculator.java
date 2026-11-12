@@ -2,9 +2,9 @@ package br.com.agendar.scheduling.internal;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -12,49 +12,50 @@ import java.util.List;
 /**
  * Calcula os horários livres de um prestador em um dia.
  *
- * <p><b>Provisório:</b> o cadastro de disponibilidade do prestador (horário de trabalho, férias,
- * bloqueios) ainda não existe — é fase 2 e não tem issue. Enquanto isso, a janela de trabalho é
- * configurável e igual para todos os prestadores do tenant:
- * {@code agendar.scheduling.expediente.inicio} e {@code ...fim}.
+ * <p>A janela de trabalho vem do expediente do prestador ou do padrão do tenant (issue #39), em
+ * **hora local** do tenant. A conversão para instantes absolutos acontece aqui, a cada dia: é o
+ * que mantém a grade estável quando o horário de verão muda, porque a hora local continua a
+ * mesma e o offset se ajusta sozinho.
  *
- * <p>Regra do slot: o intervalo {@code [inicio, inicio + duracao)} precisa caber dentro do
- * expediente e não sobrepor nenhum agendamento ativo (status diferente de {@code CANCELADO}).
- * Os slots são oferecidos em passos de {@code passo-minutos}, começando no início do expediente.
+ * <p>Regra do slot: o intervalo {@code [inicio, inicio + duracao)} precisa caber dentro da janela
+ * e não sobrepor nenhum agendamento ativo (status diferente de {@code CANCELADO}). Os slots são
+ * oferecidos em passos de {@code passo}, começando no início da janela.
  */
 public final class SlotCalculator {
 
-    private final LocalTime inicioExpediente;
-    private final LocalTime fimExpediente;
     private final Duration passo;
 
-    public SlotCalculator(LocalTime inicioExpediente, LocalTime fimExpediente, Duration passo) {
-        if (!inicioExpediente.isBefore(fimExpediente)) {
-            throw new IllegalArgumentException("início do expediente precisa ser antes do fim");
-        }
+    public SlotCalculator(Duration passo) {
         if (passo.isNegative() || passo.isZero()) {
             throw new IllegalArgumentException("passo precisa ser positivo");
         }
-        this.inicioExpediente = inicioExpediente;
-        this.fimExpediente = fimExpediente;
         this.passo = passo;
     }
 
     /**
-     * @param data        dia consultado, no fuso informado
-     * @param fuso        fuso do tenant
-     * @param duracao     duração do serviço
-     * @param ocupados    agendamentos ativos do prestador naquele dia
+     * @param dia        data consultada, no fuso do tenant
+     * @param fuso       fuso do tenant
+     * @param inicio     hora local de início do expediente
+     * @param fim        hora local de fim do expediente
+     * @param duracao    duração do serviço
+     * @param ocupados   agendamentos ativos do prestador naquele dia
      */
-    public List<Slot> calcular(LocalDate data, ZoneId fuso, Duration duracao, List<Ocupado> ocupados) {
-        Instant inicio = data.atTime(inicioExpediente).atZone(fuso).toInstant();
-        Instant fim = data.atTime(fimExpediente).atZone(fuso).toInstant();
+    public List<Slot> calcular(java.time.LocalDate dia, ZoneId fuso, LocalTime inicio, LocalTime fim,
+                               Duration duracao, List<Ocupado> ocupados) {
+        if (!inicio.isBefore(fim)) {
+            throw new IllegalArgumentException("início do expediente precisa ser antes do fim");
+        }
+
+        Instant inicioJanela = emInstante(dia, inicio, fuso);
+        Instant fimJanela = emInstante(dia, fim, fuso);
 
         List<Ocupado> ordenados = ocupados.stream()
                 .sorted(Comparator.comparing(Ocupado::inicio))
                 .toList();
 
         List<Slot> livres = new ArrayList<>();
-        for (Instant candidato = inicio; !candidato.plus(duracao).isAfter(fim); candidato = candidato.plus(passo)) {
+        for (Instant candidato = inicioJanela; !candidato.plus(duracao).isAfter(fimJanela);
+             candidato = candidato.plus(passo)) {
             Instant inicioSlot = candidato;
             Instant candidatoFim = candidato.plus(duracao);
             boolean conflita = ordenados.stream().anyMatch(o ->
@@ -64,6 +65,16 @@ public final class SlotCalculator {
             }
         }
         return livres;
+    }
+
+    /**
+     * Converte hora local do tenant em instante absoluto.
+     *
+     * <p>Usa a regra do fuso para aquela data, então um dia com horário de verão produz o offset
+     * correto sem nenhum cálculo manual.
+     */
+    private static Instant emInstante(java.time.LocalDate dia, LocalTime hora, ZoneId fuso) {
+        return ZonedDateTime.of(dia, hora, fuso).toInstant();
     }
 
     /**

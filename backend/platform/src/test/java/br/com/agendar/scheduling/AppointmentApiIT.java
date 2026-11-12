@@ -41,12 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(
         classes = br.com.agendar.platform.AgendarApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {
-                "agendar.scheduling.expediente.inicio=08:00",
-                "agendar.scheduling.expediente.fim=12:00",
-                "agendar.scheduling.slot.passo=PT30M",
-                "agendar.scheduling.fuso=UTC"
-        })
+        properties = "agendar.scheduling.slot.passo=PT30M")
 @Testcontainers
 class AppointmentApiIT {
 
@@ -61,6 +56,8 @@ class AppointmentApiIT {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private br.com.agendar.core.internal.provider.ProviderRepository prestadoresProvider;
+    @Autowired private br.com.agendar.scheduling.internal.availability.TenantTimezoneRepository fusos;
+    @Autowired private br.com.agendar.scheduling.internal.availability.TenantAvailabilityRepository expedientes;
 
     private UUID tenantId;
     private UUID prestadorId;
@@ -78,8 +75,18 @@ class AppointmentApiIT {
         users.deleteAll();
         tenants.deleteAll();
 
+        fusos.deleteAll();
+        expedientes.deleteAll();
+
         tenantId = UUID.randomUUID();
         tenants.saveAndFlush(new Tenant(tenantId, "Empresa Agenda", "ag-" + tenantId));
+
+        // Expediente padrão do tenant: 08:00-12:00 UTC, todo dia. Substitui o provisório da #18.
+        fusos.saveAndFlush(new br.com.agendar.scheduling.internal.availability.TenantTimezone(tenantId, "UTC"));
+        for (java.time.DayOfWeek dia : java.time.DayOfWeek.values()) {
+            expedientes.saveAndFlush(new br.com.agendar.scheduling.internal.availability.TenantAvailability(
+                    tenantId, dia, java.time.LocalTime.of(8, 0), java.time.LocalTime.of(12, 0)));
+        }
 
         prestadorId = UUID.randomUUID();
         outroPrestadorId = UUID.randomUUID();

@@ -11,11 +11,15 @@ on:
       - "backend/**"
       - ".github/workflows/backend.yml"
 
-# Um push novo no mesmo PR cancela a execução anterior: não faz sentido gastar runner
-# testando uma versão que já foi substituída.
+# Em PR, um push novo cancela a execução anterior: não faz sentido gastar runner testando
+# uma versão que já foi substituída.
+#
+# Na `main` é o contrário: cada commit é um estado que chegou a produção, então não se cancela.
+# Um merge em sequência rápida cancelava a validação do commit anterior, e a `main` podia ficar
+# com commits nunca verificados — aconteceu nos PRs #35 a #38 desta rodada.
 concurrency:
   group: backend-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

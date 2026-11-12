@@ -1,39 +1,37 @@
 package br.com.agendar.scheduling.internal;
 
 import br.com.agendar.scheduling.api.AppointmentView;
-import br.com.agendar.scheduling.api.SchedulingFacade;
+import br.com.agendar.scheduling.internal.availability.AvailabilityConfigService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.ZoneId;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * Consulta de horários livres.
  *
- * <p><b>Provisório:</b> o expediente vem de configuração global
- * ({@code agendar.scheduling.expediente.*}), igual para todos os prestadores, porque o cadastro
- * de disponibilidade do prestador (horário de trabalho, férias, bloqueios) ainda não existe —
- * é fase 2 e não tem issue. Quando existir, esta classe passa a receber a janela do prestador.
+ * <p>A janela de trabalho vem do expediente do prestador ou do padrão do tenant (#39); não existe
+ * mais o expediente global provisório da #18. Dia sem expediente devolve lista vazia.
  */
 @Service
 public class AvailabilityService {
 
     private final AppointmentRepository repositorio;
+    private final AvailabilityConfigService expediente;
     private final SlotCalculator calculadora;
 
     public AvailabilityService(AppointmentRepository repositorio,
-                        @Value("${agendar.scheduling.expediente.inicio:08:00}") LocalTime inicio,
-                        @Value("${agendar.scheduling.expediente.fim:18:00}") LocalTime fim,
-                        @Value("${agendar.scheduling.slot.passo:PT30M}") Duration passo) {
+                               AvailabilityConfigService expediente,
+                               @Value("${agendar.scheduling.slot.passo:PT30M}") Duration passo) {
         this.repositorio = repositorio;
-        this.calculadora = new SlotCalculator(inicio, fim, passo);
+        this.expediente = expediente;
+        this.calculadora = new SlotCalculator(passo);
     }
 
     /**
@@ -49,8 +47,13 @@ public class AvailabilityService {
     }
 
     @Transactional(readOnly = true)
-    public List<SlotCalculator.Slot> slotsLivres(UUID prestadorId, LocalDate data, ZoneId fuso,
-                                                 Duration duracao) {
+    public List<SlotCalculator.Slot> slotsLivres(UUID tenantId, UUID prestadorId, LocalDate data,
+                                                 ZoneId fuso, Duration duracao) {
+        var janela = expediente.janelaDoDia(tenantId, prestadorId, data);
+        if (janela.isEmpty()) {
+            return List.of();
+        }
+
         Instant inicioDoDia = data.atStartOfDay(fuso).toInstant();
         Instant fimDoDia = data.plusDays(1).atStartOfDay(fuso).toInstant();
 
@@ -59,6 +62,25 @@ public class AvailabilityService {
                 .map(a -> new SlotCalculator.Ocupado(a.getStartsAt(), a.getEndsAt()))
                 .toList();
 
-        return calculadora.calcular(data, fuso, duracao, ocupados);
+        return calculadora.calcular(data, fuso, janela.get().inicio(), janela.get().fim(),
+                duracao, ocupados);
+    }
+
+    /**
+     * Indica se o instante está dentro do expediente do prestador naquele dia.
+     *
+     * <p>Usado pelo {@code POST /appointments} para recusar horário fora do expediente.
+     */
+    @Transactional(readOnly = true)
+    public boolean dentroDoExpediente(UUID tenantId, UUID prestadorId, Instant inicio, Instant fim) {
+        ZoneId fuso = expediente.fusoDoTenant(tenantId);
+        LocalDate dia = inicio.atZone(fuso).toLocalDate();
+        var janela = expediente.janelaDoDia(tenantId, prestadorId, dia);
+        if (janela.isEmpty()) {
+            return false;
+        }
+        Instant inicioJanela = dia.atTime(janela.get().inicio()).atZone(fuso).toInstant();
+        Instant fimJanela = dia.atTime(janela.get().fim()).atZone(fuso).toInstant();
+        return !inicio.isBefore(inicioJanela) && !fim.isAfter(fimJanela);
     }
 }

@@ -11,9 +11,11 @@ on:
       - "frontend/**"
       - ".github/workflows/frontend.yml"
 
+# Em PR, um push novo cancela a execução anterior. Na `main`, nunca: cada commit é um estado
+# que chegou a produção e precisa da sua própria validação.
 concurrency:
   group: frontend-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
