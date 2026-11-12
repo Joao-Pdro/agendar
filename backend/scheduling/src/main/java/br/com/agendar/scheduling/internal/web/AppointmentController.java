@@ -5,6 +5,7 @@ import br.com.agendar.identity.api.AuthenticatedUser;
 import br.com.agendar.scheduling.api.SchedulingFacade;
 import br.com.agendar.scheduling.internal.AvailabilityService;
 import br.com.agendar.scheduling.internal.SlotCalculator;
+import br.com.agendar.scheduling.internal.availability.AvailabilityConfigService;
 import br.com.agendar.scheduling.internal.dependencias.ServicoConsulta;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -46,15 +47,14 @@ class AppointmentController {
     private final AvailabilityService availability;
     private final SchedulingFacade scheduling;
     private final ServicoConsulta servicos;
-    private final ZoneId fuso;
+    private final AvailabilityConfigService expediente;
 
     AppointmentController(AvailabilityService availability, SchedulingFacade scheduling,
-                          ServicoConsulta servicos,
-                          @Value("${agendar.scheduling.fuso:UTC}") String fuso) {
+                          ServicoConsulta servicos, AvailabilityConfigService expediente) {
         this.availability = availability;
         this.scheduling = scheduling;
         this.servicos = servicos;
-        this.fuso = ZoneId.of(fuso);
+        this.expediente = expediente;
     }
 
     public record SlotResponse(Instant startsAt, Instant endsAt) {
@@ -90,8 +90,10 @@ class AppointmentController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
+        // O fuso vem do tenant (#39), não mais de configuração global.
+        ZoneId fuso = expediente.fusoDoTenant(user.tenantId());
         List<SlotResponse> slots = availability
-                .slotsLivres(providerId, date, fuso, Duration.ofMinutes(durationMinutes)).stream()
+                .slotsLivres(user.tenantId(), providerId, date, fuso, Duration.ofMinutes(durationMinutes)).stream()
                 .map(s -> new SlotResponse(s.startsAt(), s.endsAt()))
                 .toList();
 
@@ -156,6 +158,15 @@ class AppointmentController {
         if (request.startsAt().isBefore(Instant.now())) {
             return ResponseEntity.unprocessableEntity().body(problema(HttpStatus.UNPROCESSABLE_ENTITY,
                     "VALIDATION_ERROR", "startsAt deve ser uma data futura"));
+        }
+
+        // Fora do expediente do prestador (ou do padrão do tenant) é 422: o contrato da #39
+        // separa regra de negócio (422) de conflito de horário (409).
+        Instant fim = request.startsAt().plus(Duration.ofMinutes(servico.get().durationMinutes()));
+        if (!availability.dentroDoExpediente(user.tenantId(), request.providerId(),
+                request.startsAt(), fim)) {
+            return ResponseEntity.unprocessableEntity().body(problema(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "FORA_DO_EXPEDIENTE", "Horário fora do expediente do prestador"));
         }
 
         var comando = new SchedulingFacade.AgendarCommand(user.tenantId(), request.providerId(),

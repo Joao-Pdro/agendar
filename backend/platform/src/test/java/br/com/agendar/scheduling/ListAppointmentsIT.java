@@ -53,6 +53,8 @@ class ListAppointmentsIT {
     @Autowired private ServiceRepository servicos;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private br.com.agendar.scheduling.internal.availability.TenantTimezoneRepository fusos;
+    @Autowired private br.com.agendar.scheduling.internal.availability.TenantAvailabilityRepository expedientes;
 
     private UUID tenantA;
     private UUID tenantB;
@@ -69,6 +71,8 @@ class ListAppointmentsIT {
 
     @BeforeEach
     void preparar() {
+        expedientes.deleteAll();
+        fusos.deleteAll();
         servicos.deleteAll();
         users.deleteAll();
         tenants.deleteAll();
@@ -77,6 +81,18 @@ class ListAppointmentsIT {
         tenantB = UUID.randomUUID();
         tenants.saveAndFlush(new Tenant(tenantA, "A", "a-" + tenantA));
         tenants.saveAndFlush(new Tenant(tenantB, "B", "b-" + tenantB));
+
+        // Expediente do tenant (#39): sem isso o POST responde 422 FORA_DO_EXPEDIENTE.
+        // 00:00-23:59 UTC cobre qualquer horário usado neste teste.
+        fusos.saveAndFlush(new br.com.agendar.scheduling.internal.availability.TenantTimezone(tenantA, "UTC"));
+        fusos.saveAndFlush(new br.com.agendar.scheduling.internal.availability.TenantTimezone(tenantB, "UTC"));
+        for (var t : new UUID[]{tenantA, tenantB}) {
+            for (var dia : java.time.DayOfWeek.values()) {
+                expedientes.saveAndFlush(
+                        new br.com.agendar.scheduling.internal.availability.TenantAvailability(
+                                t, dia, java.time.LocalTime.MIN, java.time.LocalTime.of(23, 59)));
+            }
+        }
 
         prestadorA = UUID.randomUUID();
         outroPrestadorA = UUID.randomUUID();
