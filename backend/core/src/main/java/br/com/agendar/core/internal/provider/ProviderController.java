@@ -1,6 +1,7 @@
 package br.com.agendar.core.internal.provider;
 
 import br.com.agendar.identity.api.AuthenticatedUser;
+import br.com.agendar.identity.api.IdentityFacade;
 import br.com.agendar.identity.api.Role;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -34,9 +35,11 @@ import java.util.UUID;
 class ProviderController {
 
     private final ProviderRepository prestadores;
+    private final IdentityFacade identidade;
 
-    ProviderController(ProviderRepository prestadores) {
+    ProviderController(ProviderRepository prestadores, IdentityFacade identidade) {
         this.prestadores = prestadores;
+        this.identidade = identidade;
     }
 
     public record CriarProviderRequest(@NotBlank String name, UUID userId) {
@@ -90,10 +93,16 @@ class ProviderController {
 
     @PostMapping
     @Transactional
-    ResponseEntity<ProviderResponse> criar(@AuthenticationPrincipal AuthenticatedUser user,
+    ResponseEntity<?> criar(@AuthenticationPrincipal AuthenticatedUser user,
                                           @Valid @RequestBody CriarProviderRequest request) {
         if (!podeEscrever(user)) {
             return ResponseEntity.status(statusSeNaoPodeEscrever(user)).build();
+        }
+
+        if (request.userId() != null
+                && !identidade.usuarioPertenceAoTenant(user.tenantId(), request.userId())) {
+            return ResponseEntity.unprocessableEntity().body(problema("USUARIO_INVALIDO",
+                    "Usuário não existe neste tenant"));
         }
 
         Provider prestador = new Provider(UUID.randomUUID(), user.tenantId(),
@@ -106,7 +115,7 @@ class ProviderController {
 
     @PatchMapping("/{id}")
     @Transactional
-    ResponseEntity<ProviderResponse> alterar(@AuthenticationPrincipal AuthenticatedUser user,
+    ResponseEntity<?> alterar(@AuthenticationPrincipal AuthenticatedUser user,
                                             @PathVariable UUID id,
                                             @RequestBody AlterarProviderRequest request) {
         if (!podeEscrever(user)) {
@@ -123,6 +132,10 @@ class ProviderController {
             prestador.renomear(request.name());
         }
         if (request.userId() != null) {
+            if (!identidade.usuarioPertenceAoTenant(user.tenantId(), request.userId())) {
+                return ResponseEntity.unprocessableEntity().body(problema("USUARIO_INVALIDO",
+                        "Usuário não existe neste tenant"));
+            }
             prestador.vincularUsuario(request.userId());
         }
         prestadores.saveAndFlush(prestador);
@@ -147,6 +160,14 @@ class ProviderController {
         prestadores.saveAndFlush(encontrado.get());
 
         return ResponseEntity.noContent().build();
+    }
+
+    private static org.springframework.http.ProblemDetail problema(String code, String detail) {
+        var problema = org.springframework.http.ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNPROCESSABLE_ENTITY, detail);
+        problema.setTitle("Requisição inválida");
+        problema.setProperty("code", code);
+        return problema;
     }
 
     private static boolean ehODono(AuthenticatedUser user, Provider prestador) {

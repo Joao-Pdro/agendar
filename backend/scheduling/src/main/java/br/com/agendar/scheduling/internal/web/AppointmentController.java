@@ -6,6 +6,7 @@ import br.com.agendar.scheduling.api.SchedulingFacade;
 import br.com.agendar.scheduling.internal.AvailabilityService;
 import br.com.agendar.scheduling.internal.SlotCalculator;
 import br.com.agendar.scheduling.internal.availability.AvailabilityConfigService;
+import br.com.agendar.scheduling.internal.dependencias.AcessoAgenda;
 import br.com.agendar.scheduling.internal.dependencias.ServicoConsulta;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -48,13 +49,19 @@ class AppointmentController {
     private final SchedulingFacade scheduling;
     private final ServicoConsulta servicos;
     private final AvailabilityConfigService expediente;
+    private final AcessoAgenda acesso;
+    private final ZoneId fuso;
 
     AppointmentController(AvailabilityService availability, SchedulingFacade scheduling,
-                          ServicoConsulta servicos, AvailabilityConfigService expediente) {
+                          ServicoConsulta servicos, AvailabilityConfigService expediente,
+                          AcessoAgenda acesso,
+                          @Value("${agendar.scheduling.fuso:UTC}") String fuso) {
         this.availability = availability;
         this.scheduling = scheduling;
         this.servicos = servicos;
         this.expediente = expediente;
+        this.acesso = acesso;
+        this.fuso = ZoneId.of(fuso);
     }
 
     public record SlotResponse(Instant startsAt, Instant endsAt) {
@@ -86,7 +93,7 @@ class AppointmentController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        if (!user.canAccessProvider(providerId)) {
+        if (!acesso.podeAcessar(user, providerId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -116,7 +123,7 @@ class AppointmentController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        if (!user.canAccessProvider(providerId)) {
+        if (!acesso.podeAcessar(user, providerId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         if (!from.isBefore(to)) {
@@ -144,7 +151,7 @@ class AppointmentController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        if (!user.canAccessProvider(request.providerId())) {
+        if (!acesso.podeAcessar(user, request.providerId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 

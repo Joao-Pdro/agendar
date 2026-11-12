@@ -56,6 +56,9 @@ class SecurityIT {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private br.com.agendar.core.internal.provider.ProviderRepository prestadoresProvider;
+
     private UUID tenantA;
     private UUID tenantB;
     private UUID adminA;
@@ -66,6 +69,7 @@ class SecurityIT {
 
     @BeforeEach
     void prepararDados() {
+        prestadoresProvider.deleteAll();
         users.deleteAll();
         tenants.deleteAll();
 
@@ -130,19 +134,22 @@ class SecurityIT {
 
     @Test
     void prestadorAcessaAPropriaAgendaEMasNaoADeOutro() {
-        assertThat(get("/prestadores/" + prestadorA1 + "/agenda", prestadorA1).getStatusCode())
-                .isEqualTo(HttpStatus.OK);
+        // O vínculo usuário → prestador vem do cadastro (#40): o id do prestador é diferente
+        // do id do usuário, e mesmo assim o prestador acessa a própria agenda.
+        UUID providerA1 = criarPrestadorVinculado(prestadorA1, "Prestador 1");
+        UUID providerA2 = criarPrestadorVinculado(prestadorA2, "Prestador 2");
 
-        assertThat(get("/prestadores/" + prestadorA2 + "/agenda", prestadorA1).getStatusCode())
-                .isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(agenda(providerA1, prestadorA1)).isEqualTo(HttpStatus.OK);
+        assertThat(agenda(providerA2, prestadorA1)).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
     void recepcaoAcessaAAgendaDeQualquerPrestadorDoTenant() {
-        assertThat(get("/prestadores/" + prestadorA1 + "/agenda", recepcaoA).getStatusCode())
-                .isEqualTo(HttpStatus.OK);
-        assertThat(get("/prestadores/" + prestadorA2 + "/agenda", recepcaoA).getStatusCode())
-                .isEqualTo(HttpStatus.OK);
+        UUID providerA1 = criarPrestadorVinculado(prestadorA1, "Prestador 1");
+        UUID providerA2 = criarPrestadorVinculado(prestadorA2, "Prestador 2");
+
+        assertThat(agenda(providerA1, recepcaoA)).isEqualTo(HttpStatus.OK);
+        assertThat(agenda(providerA2, recepcaoA)).isEqualTo(HttpStatus.OK);
     }
 
     @Test
@@ -164,11 +171,30 @@ class SecurityIT {
 
     @Test
     void requisicaoSemTokenResponde401() {
-        assertThat(rest.getForEntity("/prestadores/" + prestadorA1 + "/agenda", String.class)
+        assertThat(rest.getForEntity("/providers/" + prestadorA1
+                + "/appointments?from=2030-01-01T00:00:00Z&to=2030-01-02T00:00:00Z", String.class)
                 .getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     // ---------------------------------------------------------------- helpers
+
+    private UUID criarPrestadorVinculado(UUID userId, String nome) {
+        // `providerA1` e afins são ids de USUÁRIO; o prestador tem id próprio e aponta para ele.
+        var prestador = new br.com.agendar.core.internal.provider.Provider(
+                UUID.randomUUID(), tenantA, nome, userId);
+        prestadoresProvider.saveAndFlush(prestador);
+        return prestador.getId();
+    }
+
+    private org.springframework.http.HttpStatus agenda(UUID providerId, UUID userId) {
+        var usuario = users.findById(userId).orElseThrow();
+        String token = tokenPara(userId, usuario.getTenantId(), usuario.getRole());
+        var resposta = rest.exchange("/providers/" + providerId
+                        + "/appointments?from=2030-01-01T00:00:00Z&to=2030-01-02T00:00:00Z",
+                org.springframework.http.HttpMethod.GET,
+                new org.springframework.http.HttpEntity<>(json(token)), String.class);
+        return org.springframework.http.HttpStatus.valueOf(resposta.getStatusCode().value());
+    }
 
     private UUID criarTenant(String nome, String slug) {
         UUID id = UUID.randomUUID();

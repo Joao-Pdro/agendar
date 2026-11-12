@@ -5,6 +5,10 @@ import java.util.UUID;
 /**
  * Usuário autenticado na requisição, extraído do JWT.
  *
+ * <p>Deliberadamente **não** decide acesso a agenda: o vínculo usuário → prestador vive no
+ * módulo {@code core}, não aqui. Quem precisa da regra pergunta ao
+ * {@code br.com.agendar.core.api.ProviderFacade} e combina com {@link #canManageAnyProvider()}.
+ *
  * @param userId    id do usuário
  * @param tenantId  tenant do usuário; {@code null} para o operador da plataforma
  * @param role      perfil
@@ -29,14 +33,7 @@ public record AuthenticatedUser(UUID userId, UUID tenantId, Role role) {
         return role == Role.ADMIN || role == Role.RECEPCAO;
     }
 
-    /**
-     * Prestador só enxerga e altera a própria agenda: seu id de usuário é também o id do
-     * prestador.
-     */
-    public boolean canAccessProvider(UUID prestadorId) {
-        if (canManageAnyProvider()) {
-            return true;
-        }
-        return role == Role.PRESTADOR && userId.equals(prestadorId);
+    public boolean isPrestador() {
+        return role == Role.PRESTADOR;
     }
 }

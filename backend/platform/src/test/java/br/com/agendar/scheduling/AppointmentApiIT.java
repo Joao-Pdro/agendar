@@ -55,6 +55,7 @@ class AppointmentApiIT {
     @Autowired private ServiceRepository servicos;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private br.com.agendar.core.internal.provider.ProviderRepository prestadoresProvider;
     @Autowired private br.com.agendar.scheduling.internal.availability.TenantTimezoneRepository fusos;
     @Autowired private br.com.agendar.scheduling.internal.availability.TenantAvailabilityRepository expedientes;
 
@@ -69,6 +70,7 @@ class AppointmentApiIT {
 
     @BeforeEach
     void preparar() {
+        prestadoresProvider.deleteAll();
         servicos.deleteAll();
         users.deleteAll();
         tenants.deleteAll();
@@ -94,6 +96,13 @@ class AppointmentApiIT {
                 passwordEncoder.encode(SENHA), "P2", Role.PRESTADOR));
         users.saveAndFlush(new AppUser(UUID.randomUUID(), tenantId, "rec@a.com",
                 passwordEncoder.encode(SENHA), "Rec", Role.RECEPCAO));
+
+        // #40: o prestador tem id próprio e aponta para o usuário; os testes usam o id do
+        // prestador, não o do usuário.
+        UUID usuarioP1 = prestadorId;
+        UUID usuarioP2 = outroPrestadorId;
+        prestadorId = criarPrestador(usuarioP1, "P1");
+        outroPrestadorId = criarPrestador(usuarioP2, "P2");
 
         servicoId = UUID.randomUUID();
         servicos.saveAndFlush(new Service(servicoId, tenantId, "Corte", 60, new BigDecimal("100.00")));
@@ -253,6 +262,13 @@ class AppointmentApiIT {
     }
 
     // ---------------------------------------------------------------- helpers
+
+    private UUID criarPrestador(UUID userId, String nome) {
+        var prestador = new br.com.agendar.core.internal.provider.Provider(
+                UUID.randomUUID(), tenantId, nome, userId);
+        prestadoresProvider.saveAndFlush(prestador);
+        return prestador.getId();
+    }
 
     private ResponseEntity<String> criar(String token, UUID providerId, Instant inicio, String chave) {
         return criarComCliente(token, providerId, inicio, chave, UUID.randomUUID());
