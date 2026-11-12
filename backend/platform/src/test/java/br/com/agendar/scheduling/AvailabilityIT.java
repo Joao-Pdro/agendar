@@ -162,8 +162,6 @@ class AvailabilityIT {
         var tz = fusos.findById(tenantId).orElseThrow();
         tz.alterar("Europe/Lisbon");
         fusos.saveAndFlush(tz);
-        System.out.println("==TZ==" + fusos.findById(tenantId).orElseThrow().getTimezone());
-        System.out.println("==AV==" + expedientePrestador.findAllByProviderIdAndTenantId(prestadorId, tenantId).size());
 
         JsonNode antes = slots(prestadorId, "2030-03-30", tokenRecepcao);
         JsonNode depois = slots(prestadorId, "2030-03-31", tokenRecepcao);
@@ -176,11 +174,11 @@ class AvailabilityIT {
         assertThat(depois.get(0).get("startsAt").asText()).isEqualTo("2030-03-31T08:00:00Z");
 
         // O importante: a hora local do slot continua 09:00 nos dois dias.
-        java.time.ZoneId saoPaulo = java.time.ZoneId.of("Europe/Lisbon");
+        java.time.ZoneId lisboa = java.time.ZoneId.of("Europe/Lisbon");
         assertThat(java.time.Instant.parse(antes.get(0).get("startsAt").asText())
-                .atZone(saoPaulo).toLocalTime()).isEqualTo(LocalTime.of(9, 0));
+                .atZone(lisboa).toLocalTime()).isEqualTo(LocalTime.of(9, 0));
         assertThat(java.time.Instant.parse(depois.get(0).get("startsAt").asText())
-                .atZone(saoPaulo).toLocalTime()).isEqualTo(LocalTime.of(9, 0));
+                .atZone(lisboa).toLocalTime()).isEqualTo(LocalTime.of(9, 0));
     }
 
     @Test
